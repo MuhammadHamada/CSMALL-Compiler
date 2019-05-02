@@ -48,30 +48,19 @@
      FLOAT = 264,
      CHAR = 265,
      BOOL = 266,
-     OPENBRACE = 267,
-     CLOSEDBRACE = 268,
-     OPENPAR = 269,
-     CLOSEDPAR = 270,
-     OPENSQB = 271,
-     CLOSESQB = 272,
-     SEMICOL = 273,
-     ENDOFFILE = 274,
-     PLUS = 275,
-     MINUS = 276,
-     MULTIPLY = 277,
-     DIVIDE = 278,
-     GE = 279,
-     LE = 280,
-     GT = 281,
-     LT = 282,
-     EQ = 283,
-     NE = 284,
-     NOT = 285,
-     AND = 286,
-     OR = 287,
-     BOOL_TRUE = 288,
-     BOOL_FALSE = 289,
-     UMINUS = 290
+     ENDOFFILE = 267,
+     GE = 268,
+     LE = 269,
+     GT = 270,
+     LT = 271,
+     EQ = 272,
+     NE = 273,
+     NOT = 274,
+     AND = 275,
+     OR = 276,
+     BOOL_TRUE = 277,
+     BOOL_FALSE = 278,
+     UMINUS = 279
    };
 #endif
 
@@ -91,7 +80,7 @@ typedef union YYSTYPE
 
 
 /* Line 1676 of yacc.c  */
-#line 95 "csmall-parser.tab.h"
+#line 84 "csmall-parser.tab.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */

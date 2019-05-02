@@ -27,19 +27,17 @@ printable [\x20-\x7E]
 "false"                         {return BOOL_FALSE;}
 
 
-"{"								{return OPENBRACE;}
-"}"								{return CLOSEDBRACE;}
-"("								{return OPENPAR;}
-")"								{return CLOSEDPAR;}
-"["                             {return OPENSQB;}
-"]"								{return CLOSESQB;}
-";"								{return SEMICOL;}
+"{"								{return '{';}
+"}"								{return '}';}
+"("								{return '(';}
+")"								{return ')';}
+";"								{return ';';}
 
 "="								{return '=';}
-"+"								{return PLUS;}
-"-"								{return MINUS;}
-"*"								{return MULTIPLY;}
-"/"								{return DIVIDE;}
+"+"								{return '+';}
+"-"								{return '-';}
+"*"								{return '*';}
+"/"								{return '/';}
 ">="							{return GE;}
 "<="							{return LE;}
 ">"								{return GT;}

@@ -55,15 +55,14 @@ void yyerror(char *s);
 %token <val> INTEGER DECIMAL CHARACTER
 %token <name> VAR
 %token CONST INT FLOAT CHAR BOOL 
-%token OPENBRACE CLOSEDBRACE OPENPAR CLOSEDPAR OPENSQB CLOSESQB SEMICOL
 %token ENDOFFILE
-%token PLUS MINUS MULTIPLY DIVIDE GE LE GT LT EQ NE NOT AND OR 
+%token GE LE GT LT EQ NE NOT AND OR 
 %token BOOL_TRUE BOOL_FALSE
 
 %left AND OR
 %left GE LE EQ NE GT LT
-%left PLUS MINUS
-%left MULTIPLY DIVIDE
+%left '+' '-'
+%left '*' '/'
 
 %right NOT
 %nonassoc UMINUS
@@ -85,9 +84,9 @@ collection_stmt:
   ;
 
 stmt:
-   	SEMICOL																	         	{}
-	|	declaration	SEMICOL															  {}
-	|	assignment SEMICOL															  {}
+   	';'																	         	{}
+	|	declaration	';'															  {}
+	|	assignment ';'															  {}
   ;
 
 declaration:
@@ -117,18 +116,18 @@ expr:
   | VAR        {}
   | BOOL_TRUE  {}
   | BOOL_FALSE {}
-  | MINUS expr %prec UMINUS {}
-  | expr PLUS expr          {}
-  | expr MINUS expr         {}
-  | expr MULTIPLY expr      {}
-  | expr DIVIDE expr        {}
+  | '-' expr %prec UMINUS {}
+  | expr '+' expr          {}
+  | expr '-' expr         {}
+  | expr '*' expr      {}
+  | expr '/' expr        {}
   | expr LT expr  {}
   | expr GT expr  {}
   | expr GE expr  {}
   | expr LE expr  {}
   | expr NE expr  {}
   | expr EQ expr  {}
-  | OPENPAR expr CLOSEDPAR  {}
+  | '(' expr ')'  {}
   ;
 
 
