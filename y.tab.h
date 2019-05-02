@@ -82,19 +82,16 @@ typedef union YYSTYPE
 {
 
 /* Line 1676 of yacc.c  */
-#line 46 "csmall-parser.y"
+#line 48 "csmall-parser.y"
 
-  char* val;
-  char* name;
-  struct info {		
-		int type;
-		char val[100];		
-	};
+  char* val; 
+  char* name;      
+  struct node *nPtr; /* node pointer */
 
 
 
 /* Line 1676 of yacc.c  */
-#line 98 "csmall-parser.tab.h"
+#line 95 "csmall-parser.tab.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */

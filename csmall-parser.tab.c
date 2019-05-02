@@ -80,25 +80,23 @@
 #include <vector>
 using namespace std;
 
-typedef enum { 
-  UNDEFINED_DataType,
-  INT_DataType, 
-  FLOAT_DataType, 
-  CHAR_DataType, 
-  BOOL_DataType 
-} DataType;
+typedef enum { typeVariable, typeCodeValue, typeOperation } NodeType;
+typedef enum { intData, floatData, charData, boolData } DataType;
 
-struct node {
-
+struct node{
+	NodeType nodeType;
+	int opType;
 	DataType dataType;
-	string val;
-  bool isConst;
-  bool isInitialized;
-  bool isUsed;
-  int line;
+	bool openScope;
+	
+	int intValue;      // used for codeValues only, not variables
+	float floatValue;  // used for codeValues only, not variables
+	char charValue;    // used for codeValues only, not variables
+	bool boolValue;    // used for codeValues only, not variables
 
-  node(string val = "", DataType dataType = UNDEFINED_DataType, bool isConst = 0, bool isInitialized = 0, bool isUsed = 0, int line = 0):
-  val(val),dataType(dataType), isConst(isConst), isInitialized(isInitialized), isUsed(isUsed), line(line) {}
+	char* variableName;
+
+	vector<node*> operands;
 
 };
 
@@ -109,13 +107,17 @@ map<string,node> symbolTable;
 
 /* prototypes */
 int yylex(void);
+node* opr(int operationId, vector<node*> operands);
+node* id(char* val);
+node* con(char* val, DataType dtype);
+int ex(node *p);
 void yyerror(char *s);
-void printQuadruples(string opreration,vector<string>operands);
+
 
 
 
 /* Line 189 of yacc.c  */
-#line 119 "csmall-parser.tab.c"
+#line 121 "csmall-parser.tab.c"
 
 /* Enabling traces.  */
 #ifndef YYDEBUG
@@ -185,19 +187,16 @@ typedef union YYSTYPE
 {
 
 /* Line 214 of yacc.c  */
-#line 46 "csmall-parser.y"
+#line 48 "csmall-parser.y"
 
-  char* val;
-  char* name;
-  struct info {		
-		int type;
-		char val[100];		
-	};
+  char* val; 
+  char* name;      
+  struct node *nPtr; /* node pointer */
 
 
 
 /* Line 214 of yacc.c  */
-#line 201 "csmall-parser.tab.c"
+#line 200 "csmall-parser.tab.c"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
@@ -209,7 +208,7 @@ typedef union YYSTYPE
 
 
 /* Line 264 of yacc.c  */
-#line 213 "csmall-parser.tab.c"
+#line 212 "csmall-parser.tab.c"
 
 #ifdef short
 # undef short
@@ -510,10 +509,10 @@ static const yytype_int8 yyrhs[] =
 /* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
 static const yytype_uint8 yyrline[] =
 {
-       0,    80,    80,    81,    85,    86,    90,    91,    92,    96,
-      97,    98,   112,   113,   114,   115,   116,   117,   118,   119,
-     120,   124,   129,   130,   131,   132,   133,   134,   135,   136,
-     137,   138,   139,   140,   141,   142,   143,   144,   145,   146
+       0,    78,    78,    79,    83,    84,    88,    89,    90,    94,
+      95,    96,    97,    98,    99,   100,   101,   102,   103,   104,
+     105,   109,   114,   115,   116,   117,   118,   119,   120,   121,
+     122,   123,   124,   125,   126,   127,   128,   129,   130,   131
 };
 #endif
 
@@ -1462,286 +1461,273 @@ yyreduce:
         case 2:
 
 /* Line 1455 of yacc.c  */
-#line 80 "csmall-parser.y"
+#line 78 "csmall-parser.y"
     {;}
     break;
 
   case 3:
 
 /* Line 1455 of yacc.c  */
-#line 81 "csmall-parser.y"
+#line 79 "csmall-parser.y"
     {exit(0);;}
     break;
 
   case 4:
 
 /* Line 1455 of yacc.c  */
-#line 85 "csmall-parser.y"
+#line 83 "csmall-parser.y"
     {;}
     break;
 
   case 5:
 
 /* Line 1455 of yacc.c  */
-#line 86 "csmall-parser.y"
+#line 84 "csmall-parser.y"
     {;}
     break;
 
   case 6:
 
 /* Line 1455 of yacc.c  */
-#line 90 "csmall-parser.y"
+#line 88 "csmall-parser.y"
     {;}
     break;
 
   case 7:
 
 /* Line 1455 of yacc.c  */
-#line 91 "csmall-parser.y"
+#line 89 "csmall-parser.y"
     {;}
     break;
 
   case 8:
 
 /* Line 1455 of yacc.c  */
-#line 92 "csmall-parser.y"
+#line 90 "csmall-parser.y"
     {;}
     break;
 
   case 9:
 
 /* Line 1455 of yacc.c  */
-#line 96 "csmall-parser.y"
+#line 94 "csmall-parser.y"
     {;}
     break;
 
   case 10:
 
 /* Line 1455 of yacc.c  */
-#line 97 "csmall-parser.y"
+#line 95 "csmall-parser.y"
     {;}
     break;
 
   case 11:
 
 /* Line 1455 of yacc.c  */
-#line 98 "csmall-parser.y"
-    {
-                                                      // new variable to symbol table
-                                                      node n((yyvsp[(5) - (5)].val), CHAR_DataType, 1, 1, 0, yylineno);
-                                                      symbolTable[(yyvsp[(3) - (5)].name)] = n;
-                                                      for (auto i : symbolTable) {
-                                                        printf(i.first.c_str());
-                                                        printf("line %d",i.second.line);
-                                                      }
-                                                      // printing quadruples
-                                                      vector<string>operands;
-                                                      operands.push_back("R" + to_string(curRegID++));
-                                                      operands.push_back((yyvsp[(5) - (5)].val));
-                                                      printQuadruples("MOV",operands);
-                                                  ;}
+#line 96 "csmall-parser.y"
+    {;}
     break;
 
   case 12:
 
 /* Line 1455 of yacc.c  */
-#line 112 "csmall-parser.y"
+#line 97 "csmall-parser.y"
     {;}
     break;
 
   case 13:
 
 /* Line 1455 of yacc.c  */
-#line 113 "csmall-parser.y"
+#line 98 "csmall-parser.y"
     {;}
     break;
 
   case 14:
 
 /* Line 1455 of yacc.c  */
-#line 114 "csmall-parser.y"
+#line 99 "csmall-parser.y"
     {;}
     break;
 
   case 15:
 
 /* Line 1455 of yacc.c  */
-#line 115 "csmall-parser.y"
+#line 100 "csmall-parser.y"
     {;}
     break;
 
   case 16:
 
 /* Line 1455 of yacc.c  */
-#line 116 "csmall-parser.y"
+#line 101 "csmall-parser.y"
     {;}
     break;
 
   case 17:
 
 /* Line 1455 of yacc.c  */
-#line 117 "csmall-parser.y"
+#line 102 "csmall-parser.y"
     {;}
     break;
 
   case 18:
 
 /* Line 1455 of yacc.c  */
-#line 118 "csmall-parser.y"
+#line 103 "csmall-parser.y"
     {;}
     break;
 
   case 19:
 
 /* Line 1455 of yacc.c  */
-#line 119 "csmall-parser.y"
+#line 104 "csmall-parser.y"
     {;}
     break;
 
   case 20:
 
 /* Line 1455 of yacc.c  */
-#line 120 "csmall-parser.y"
+#line 105 "csmall-parser.y"
     {;}
     break;
 
   case 21:
 
 /* Line 1455 of yacc.c  */
-#line 124 "csmall-parser.y"
+#line 109 "csmall-parser.y"
     {;}
     break;
 
   case 22:
 
 /* Line 1455 of yacc.c  */
-#line 129 "csmall-parser.y"
+#line 114 "csmall-parser.y"
     {;}
     break;
 
   case 23:
 
 /* Line 1455 of yacc.c  */
-#line 130 "csmall-parser.y"
+#line 115 "csmall-parser.y"
     {;}
     break;
 
   case 24:
 
 /* Line 1455 of yacc.c  */
-#line 131 "csmall-parser.y"
+#line 116 "csmall-parser.y"
     {;}
     break;
 
   case 25:
 
 /* Line 1455 of yacc.c  */
-#line 132 "csmall-parser.y"
+#line 117 "csmall-parser.y"
     {;}
     break;
 
   case 26:
 
 /* Line 1455 of yacc.c  */
-#line 133 "csmall-parser.y"
+#line 118 "csmall-parser.y"
     {;}
     break;
 
   case 27:
 
 /* Line 1455 of yacc.c  */
-#line 134 "csmall-parser.y"
+#line 119 "csmall-parser.y"
     {;}
     break;
 
   case 28:
 
 /* Line 1455 of yacc.c  */
-#line 135 "csmall-parser.y"
+#line 120 "csmall-parser.y"
     {;}
     break;
 
   case 29:
 
 /* Line 1455 of yacc.c  */
-#line 136 "csmall-parser.y"
+#line 121 "csmall-parser.y"
     {;}
     break;
 
   case 30:
 
 /* Line 1455 of yacc.c  */
-#line 137 "csmall-parser.y"
+#line 122 "csmall-parser.y"
     {;}
     break;
 
   case 31:
 
 /* Line 1455 of yacc.c  */
-#line 138 "csmall-parser.y"
+#line 123 "csmall-parser.y"
     {;}
     break;
 
   case 32:
 
 /* Line 1455 of yacc.c  */
-#line 139 "csmall-parser.y"
+#line 124 "csmall-parser.y"
     {;}
     break;
 
   case 33:
 
 /* Line 1455 of yacc.c  */
-#line 140 "csmall-parser.y"
+#line 125 "csmall-parser.y"
     {;}
     break;
 
   case 34:
 
 /* Line 1455 of yacc.c  */
-#line 141 "csmall-parser.y"
+#line 126 "csmall-parser.y"
     {;}
     break;
 
   case 35:
 
 /* Line 1455 of yacc.c  */
-#line 142 "csmall-parser.y"
+#line 127 "csmall-parser.y"
     {;}
     break;
 
   case 36:
 
 /* Line 1455 of yacc.c  */
-#line 143 "csmall-parser.y"
+#line 128 "csmall-parser.y"
     {;}
     break;
 
   case 37:
 
 /* Line 1455 of yacc.c  */
-#line 144 "csmall-parser.y"
+#line 129 "csmall-parser.y"
     {;}
     break;
 
   case 38:
 
 /* Line 1455 of yacc.c  */
-#line 145 "csmall-parser.y"
+#line 130 "csmall-parser.y"
     {;}
     break;
 
   case 39:
 
 /* Line 1455 of yacc.c  */
-#line 146 "csmall-parser.y"
+#line 131 "csmall-parser.y"
     {;}
     break;
 
 
 
 /* Line 1455 of yacc.c  */
-#line 1745 "csmall-parser.tab.c"
+#line 1731 "csmall-parser.tab.c"
       default: break;
     }
   YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);
@@ -1953,28 +1939,114 @@ yyreturn:
 
 
 /* Line 1675 of yacc.c  */
-#line 150 "csmall-parser.y"
+#line 135 "csmall-parser.y"
 
 
 void yyerror(char *s) {
   printf("%s\n", s);
 }
 
-void printQuadruples(string opreration,vector<string>operands) {
-
-    string out = opreration + " ";
-    int n = operands.size();
-    for (int i = 0; i < n; ++i) {
-      out += operands[i];
-      if(i != n-1) {
-        out += ',';
-      }
-    }
-    out += '\n';
-    printf(out.c_str());
+node* opr(int operationId, vector<node*> operands){
+	node* p = new node();
+	p->nodeType = typeOperation;
+	p->opType = operationId;
+	p->operands = operands;
+	p->openScope = 0;
+	return p;
 }
+
+node* id(char* val){
+	node* p = new node();
+	p->nodeType = typeVariable;
+	p->variableName = val;
+	p->openScope = 0;
+	return p;
+}
+
+node* con(char* val, DataType dtype) {
+
+  node* p = new node();
+  p->nodeType = typeCodeValue;
+  p->variableName = val;
+  p->openScope = 0;
+  p->dataType = dtype;
+  return p;
+}
+
+
+//static int lbl;
+//int ex(node *p) {
+//    int lbl1, lbl2;
+//    if (!p) return 0;
+//    switch(p->type) {
+//    case typeCon:
+//          printf("\tpush\t%d\n", p->con.value);
+//          break;
+//    case typeId:
+//          printf("\tpush\t%c\n", p->id.i + 'a');
+//          break;
+//    case typeOpr:
+//          switch(p->opr.oper) {
+//                case WHILE:
+//                    printf("L%03d:\n", lbl1 = lbl++);
+//                    ex(p->opr.op[0]);
+//                    printf("\tjz\tL%03d\n", lbl2 = lbl++);
+//                    ex(p->opr.op[1]);
+//                    printf("\tjmp\tL%03d\n", lbl1);
+//                    printf("L%03d:\n", lbl2);
+//                    break;
+//                case IF:
+//                    ex(p->opr.op[0]);
+//                    if (p->opr.nops > 2) {
+//                    /* if else */
+//                    printf("\tjz\tL%03d\n", lbl1 = lbl++);
+//                    ex(p->opr.op[1]);
+//                    printf("\tjmp\tL%03d\n", lbl2 = lbl++);
+//                    printf("L%03d:\n", lbl1);
+//                    ex(p->opr.op[2]);
+//                    printf("L%03d:\n", lbl2);
+//                    } else {
+//                    /* if */
+//                    printf("\tjz\tL%03d\n", lbl1 = lbl++);
+//                    ex(p->opr.op[1]);
+//                    printf("L%03d:\n", lbl1);
+//                    }
+//                    break;
+//                case PRINT:
+//                    ex(p->opr.op[0]);
+//                    printf("\tprint\n");
+//                    break;
+//                case '=':
+//                    ex(p->opr.op[1]);
+//                    printf("\tpop\t%c\n", p->opr.op[0]->id.i + 'a');
+//                    break;
+//                case UMINUS:
+//                    ex(p->opr.op[0]);
+//                    printf("\tneg\n");
+//                    break;
+//                default:
+//                    ex(p->opr.op[0]);
+//                    ex(p->opr.op[1]);
+//                switch(p->opr.oper) {
+//                    case '+': printf("\tadd\n"); break;
+//                    case '-': printf("\tsub\n"); break;
+//                    case '*': printf("\tmul\n"); break;
+//                    case '/': printf("\tdiv\n"); break;
+//                    case '<': printf("\tcompLT\n"); break;
+//                    case '>': printf("\tcompGT\n"); break;
+//                    case GE: printf("\tcompGE\n"); break;
+//                    case LE: printf("\tcompLE\n"); break;
+//                    case NE: printf("\tcompNE\n"); break;
+//                    case EQ: printf("\tcompEQ\n"); break;
+//                  }
+//          }
+//    }
+//  return 0;
+//}
+
 
 int main(void) {
   yyparse();
   return 0;
 }
+
