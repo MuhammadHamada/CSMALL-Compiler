@@ -65,8 +65,7 @@
      ELSE = 281,
      BOOL_TRUE = 282,
      BOOL_FALSE = 283,
-     UMINUS = 284,
-     IFX = 285
+     IFX = 284
    };
 #endif
 
@@ -77,19 +76,23 @@ typedef union YYSTYPE
 {
 
 /* Line 1676 of yacc.c  */
-#line 23 "csmall-parser.y"
+#line 96 "csmall-parser.y"
 
   char* val; 
-  char* name;      
-  struct info{		
-		int type;
-		char val[100];		
-	};
+      		
+	char* name;
+
+  struct info1{
+    int type;
+    char val[100];
+  }info;
+		
+
 
 
 
 /* Line 1676 of yacc.c  */
-#line 93 "csmall-parser.tab.h"
+#line 96 "csmall-parser.tab.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */

@@ -53,7 +53,7 @@ printable [\x20-\x7E]
 "&&"							{return AND;}
 "||"							{return OR;}
 
-[a-zA-Z_][a-zA-Z_0-9]*			{yylval.name = strdup(yytext); return VAR;}
+[a-zA-Z_][a-zA-Z_0-9]*			{yylval.val = strdup(yytext); return VAR;}
 [+-]?[0-9]+						{yylval.val = strdup(yytext);  return INTEGER;}
 [+-]?[0-9]+['.'][0-9]*			{yylval.val = strdup(yytext);  return DECIMAL;}
 [\'].[\']						{yylval.val = strdup(yytext);  return CHARACTER;}

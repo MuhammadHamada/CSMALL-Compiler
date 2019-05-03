@@ -1,20 +1,3 @@
-/* const declaration */
-const int x1 = 1;
-const float x2 = 1;
-const char  x3 = '1';
-const bool x4 = true;
-const bool x5 = false;
-
-/* declaration */
-int y1 = 1;
-float y2 = 1;
-char  y3 = '1';
-bool y4 = true;
-bool y5 = false;
-
-/* Assignment  */
-x1 = 2;
-x2 = 2;
-y3 = '2';
-y4 = false;
-x5 = true
+int x = 5;
+int y = 1;
+x = y > 5;

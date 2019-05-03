@@ -863,7 +863,7 @@ YY_RULE_SETUP
 case 34:
 YY_RULE_SETUP
 #line 56 "csmall-scanner.l"
-{yylval.name = strdup(yytext); return VAR;}
+{yylval.val = strdup(yytext); return VAR;}
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
