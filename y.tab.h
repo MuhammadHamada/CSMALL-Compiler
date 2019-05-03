@@ -58,9 +58,15 @@
      NOT = 274,
      AND = 275,
      OR = 276,
-     BOOL_TRUE = 277,
-     BOOL_FALSE = 278,
-     UMINUS = 279
+     WHILE = 277,
+     FOR = 278,
+     DO = 279,
+     IF = 280,
+     ELSE = 281,
+     BOOL_TRUE = 282,
+     BOOL_FALSE = 283,
+     UMINUS = 284,
+     IFX = 285
    };
 #endif
 
@@ -71,16 +77,19 @@ typedef union YYSTYPE
 {
 
 /* Line 1676 of yacc.c  */
-#line 48 "csmall-parser.y"
+#line 23 "csmall-parser.y"
 
   char* val; 
   char* name;      
-  struct node *nPtr; /* node pointer */
+  struct info{		
+		int type;
+		char val[100];		
+	};
 
 
 
 /* Line 1676 of yacc.c  */
-#line 84 "csmall-parser.tab.h"
+#line 93 "csmall-parser.tab.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */

@@ -9,37 +9,12 @@
 #include <vector>
 using namespace std;
 
-typedef enum { typeVariable, typeCodeValue, typeOperation } NodeType;
-typedef enum { intData, floatData, charData, boolData } DataType;
-
-struct node{
-	NodeType nodeType;
-	int opType;
-	DataType dataType;
-	bool openScope;
-	
-	int intValue;      // used for codeValues only, not variables
-	float floatValue;  // used for codeValues only, not variables
-	char charValue;    // used for codeValues only, not variables
-	bool boolValue;    // used for codeValues only, not variables
-
-	char* variableName;
-
-	vector<node*> operands;
-
-};
-
 
 extern int yylineno;
 int curRegID = 0;
-map<string,node> symbolTable;
 
 /* prototypes */
 int yylex(void);
-node* opr(int operationId, vector<node*> operands);
-node* id(char* val);
-node* con(char* val, DataType dtype);
-int ex(node *p);
 void yyerror(char *s);
 
 
@@ -48,7 +23,10 @@ void yyerror(char *s);
 %union {
   char* val; 
   char* name;      
-  struct node *nPtr; /* node pointer */
+  struct info{		
+		int type;
+		char val[100];		
+	};
 };
 
 
@@ -57,25 +35,35 @@ void yyerror(char *s);
 %token CONST INT FLOAT CHAR BOOL 
 %token ENDOFFILE
 %token GE LE GT LT EQ NE NOT AND OR 
+%token WHILE FOR DO IF ELSE
 %token BOOL_TRUE BOOL_FALSE
+
 
 %left AND OR
 %left GE LE EQ NE GT LT
+
 %left '+' '-'
 %left '*' '/'
 
 %right NOT
 %nonassoc UMINUS
+%nonassoc IFX
+%nonassoc ELSE
 
-%type <nPtr> program collection_stmt stmt declaration assignment expr 
+%type <name> declaration
+%type <info> expr 
 
 
 %start program
 
 %%
-program:
-		collection_stmt        														{}
-	|	ENDOFFILE																        	{exit(0);}
+program: 
+	function                                                                        {exit(0);}
+	;
+function:
+		function stmt          											    {}
+	|	ENDOFFILE																	{}
+	|
 	;
 
 collection_stmt:
@@ -87,17 +75,34 @@ stmt:
    	';'																	         	{}
 	|	declaration	';'															  {}
 	|	assignment ';'															  {}
+  | expr ';'
+  | loop
+  | condition
+  | open_brace collection_stmt closed_brace                      {/* check */}
+  | open_brace closed_brace
   ;
+
+open_brace:
+            '{'
+             ;
+
+closed_brace:
+             '}'
+             ;
 
 declaration:
    CONST INT VAR '=' expr                         {}
   |CONST FLOAT VAR '=' expr                       {}
   |CONST CHAR VAR '=' CHARACTER                   {}
   |CONST BOOL VAR '=' expr                        {}
+  
+  
   |INT VAR '=' expr                               {}
   |FLOAT VAR '=' expr                             {}
   |CHAR VAR '=' expr                              {}
   |BOOL VAR '=' expr                              {}
+  
+  
   |INT VAR                                        {}
   |FLOAT VAR                                      {}
   |CHAR VAR                                       {}
@@ -127,7 +132,46 @@ expr:
   | expr LE expr  {}
   | expr NE expr  {}
   | expr EQ expr  {}
+  | NOT expr
+  | expr AND expr
+  | expr OR expr
   | '(' expr ')'  {}
+  ;
+
+loop:
+  FOR for_leftPart for_condition for_rightPart stmt
+  while stmt
+  | DO stmt while ';'
+  ;
+
+for_leftPart:
+  '(' assignment
+  |'(' declaration
+  ;
+
+for_condition:
+  ';' expr
+  ;
+
+for_rightPart:
+  ';' assignment ')'
+  ;
+
+while:
+  WHILE '(' expr ')'
+  ;
+
+condition:
+   if_statement stmt %prec IFX
+  |ifelse_statement 
+  ;
+
+if_statement:
+  IF '(' expr ')' 
+  ;
+
+ifelse_statement:
+  if_statement stmt ELSE stmt
   ;
 
 
@@ -136,104 +180,6 @@ expr:
 void yyerror(char *s) {
   printf("%s\n", s);
 }
-
-node* opr(int operationId, vector<node*> operands){
-	node* p = new node();
-	p->nodeType = typeOperation;
-	p->opType = operationId;
-	p->operands = operands;
-	p->openScope = 0;
-	return p;
-}
-
-node* id(char* val){
-	node* p = new node();
-	p->nodeType = typeVariable;
-	p->variableName = val;
-	p->openScope = 0;
-	return p;
-}
-
-node* con(char* val, DataType dtype) {
-
-  node* p = new node();
-  p->nodeType = typeCodeValue;
-  p->variableName = val;
-  p->openScope = 0;
-  p->dataType = dtype;
-  return p;
-}
-
-
-//static int lbl;
-//int ex(node *p) {
-//    int lbl1, lbl2;
-//    if (!p) return 0;
-//    switch(p->type) {
-//    case typeCon:
-//          printf("\tpush\t%d\n", p->con.value);
-//          break;
-//    case typeId:
-//          printf("\tpush\t%c\n", p->id.i + 'a');
-//          break;
-//    case typeOpr:
-//          switch(p->opr.oper) {
-//                case WHILE:
-//                    printf("L%03d:\n", lbl1 = lbl++);
-//                    ex(p->opr.op[0]);
-//                    printf("\tjz\tL%03d\n", lbl2 = lbl++);
-//                    ex(p->opr.op[1]);
-//                    printf("\tjmp\tL%03d\n", lbl1);
-//                    printf("L%03d:\n", lbl2);
-//                    break;
-//                case IF:
-//                    ex(p->opr.op[0]);
-//                    if (p->opr.nops > 2) {
-//                    /* if else */
-//                    printf("\tjz\tL%03d\n", lbl1 = lbl++);
-//                    ex(p->opr.op[1]);
-//                    printf("\tjmp\tL%03d\n", lbl2 = lbl++);
-//                    printf("L%03d:\n", lbl1);
-//                    ex(p->opr.op[2]);
-//                    printf("L%03d:\n", lbl2);
-//                    } else {
-//                    /* if */
-//                    printf("\tjz\tL%03d\n", lbl1 = lbl++);
-//                    ex(p->opr.op[1]);
-//                    printf("L%03d:\n", lbl1);
-//                    }
-//                    break;
-//                case PRINT:
-//                    ex(p->opr.op[0]);
-//                    printf("\tprint\n");
-//                    break;
-//                case '=':
-//                    ex(p->opr.op[1]);
-//                    printf("\tpop\t%c\n", p->opr.op[0]->id.i + 'a');
-//                    break;
-//                case UMINUS:
-//                    ex(p->opr.op[0]);
-//                    printf("\tneg\n");
-//                    break;
-//                default:
-//                    ex(p->opr.op[0]);
-//                    ex(p->opr.op[1]);
-//                switch(p->opr.oper) {
-//                    case '+': printf("\tadd\n"); break;
-//                    case '-': printf("\tsub\n"); break;
-//                    case '*': printf("\tmul\n"); break;
-//                    case '/': printf("\tdiv\n"); break;
-//                    case '<': printf("\tcompLT\n"); break;
-//                    case '>': printf("\tcompGT\n"); break;
-//                    case GE: printf("\tcompGE\n"); break;
-//                    case LE: printf("\tcompLE\n"); break;
-//                    case NE: printf("\tcompNE\n"); break;
-//                    case EQ: printf("\tcompEQ\n"); break;
-//                  }
-//          }
-//    }
-//  return 0;
-//}
 
 
 int main(void) {

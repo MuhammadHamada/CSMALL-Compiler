@@ -26,6 +26,11 @@ printable [\x20-\x7E]
 "true"                          {return BOOL_TRUE;}
 "false"                         {return BOOL_FALSE;}
 
+"if"                            {return IF;}
+"else"                          {return ELSE;}
+"for"                           {return FOR;}
+"while"                         {return WHILE;}
+"do"                            {return DO;}
 
 "{"								{return '{';}
 "}"								{return '}';}
