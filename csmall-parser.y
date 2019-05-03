@@ -11,8 +11,9 @@ using namespace std;
 ofstream codeProblemsFile,AssemblyFile,symbolTableFile;
 
 map<char*,bool>unusedVariables;
+stack<int>unconditionalLabels,conditionalLabels;
 extern int yylineno;
-int curRegID = 0,scopeID = 0;
+int curRegID = 0,scopeID = 0,labelID=0;
 bool unsuccessfulCompilation=0;
 enum dataType {
   UNDEFINED,
@@ -90,6 +91,10 @@ void printQuadOperandOperation(string operationtype,string source1,string source
 template <typename T>
 string toString(T x);
 void symboTableFileInit();
+void printLabel(int labelNumber);
+void printJumpTrue(int labelNumber);
+void printJumpFalse(int labelNumber);
+void printJump(int labelNumber);
 
 %}
 
@@ -219,37 +224,61 @@ expr:
   ;
 
 loop:
-  FOR for_leftPart for_condition for_rightPart stmt {}
-  while stmt                                        {}
-  | DO stmt while ';'                               {}
-  ;
+  forKeyword for_leftPart for_condition for_rightPart stmt {
+                                                     
 
+
+                                                     printJump(unconditionalLabels.top()); 
+                                                     unconditionalLabels.pop();                                                                                           
+                                                     printLabel(conditionalLabels.top());
+                                                     conditionalLabels.pop();
+                                                     symbolTable[scopeID--].clear();                                      
+                                                                                           
+                                                                                                }
+  |while stmt                                        {printJump(unconditionalLabels.top()); unconditionalLabels.pop(); printLabel(conditionalLabels.top()); conditionalLabels.pop(); symbolTable[scopeID--].clear();}
+  | doKeyword stmt WHILE expr ';'                               {printJumpTrue(conditionalLabels.top()); conditionalLabels.pop(); symbolTable[scopeID--].clear();}
+  ;
+ 
+
+forKeyword:
+FOR                                                 {  map<string,entry>temp; symbolTable.push_back(temp); ++scopeID;
+                                                     }
+;
 for_leftPart:
-  '(' assignment                                    {}
-  |'(' declaration                                  {}
+  '(' assignment                                    {printLabel(++labelID); unconditionalLabels.push(labelID);}
+  |'(' declaration                                  {printLabel(++labelID); unconditionalLabels.push(labelID);}
   ;
 
 for_condition:
-  ';' expr                                          {}
+  ';' expr                                          {printJumpFalse(++labelID); conditionalLabels.push(labelID);}
   ;
 
 for_rightPart:
   ';' assignment ')'                                {}
   ;
 
+whileKeyword:
+WHILE                                               { map<string,entry>temp; symbolTable.push_back(temp); ++scopeID; printLabel(++labelID); unconditionalLabels.push(labelID);}
+;
 while:
-  WHILE '(' expr ')'                                {}
+  whileKeyword '(' expr ')'                                {printJumpFalse(++labelID); conditionalLabels.push(labelID);}
   ;
 
+doKeyword:
+DO                                                {map<string,entry>temp; symbolTable.push_back(temp); ++scopeID; printLabel(++labelID); conditionalLabels.push(labelID);}
+;
+
 condition:
-   if_statement stmt %prec IFX                      {}
-  |ifelse_statement                                 {}
+   if_statement stmt %prec IFX                      { printLabel(conditionalLabels.top()); conditionalLabels.pop(); symbolTable[scopeID--].clear();}
+  |ifelse_statement                                 { printLabel(conditionalLabels.top()); conditionalLabels.pop(); symbolTable[scopeID--].clear();}
   ;
 
 if_statement:
-  IF '(' expr ')'                                   {}
+  ifKeyword '(' expr ')'                                   {printJumpFalse(++labelID); conditionalLabels.push(labelID);}
   ;
-
+ifKeyword: 
+IF                                                   {map<string,entry>temp; symbolTable.push_back(temp); ++scopeID; }
+;                                        
 ifelse_statement:
   if_statement stmt ELSE stmt                       {}
   ;
@@ -258,7 +287,7 @@ ifelse_statement:
 %%
 
 void yyerror(char *s) {
-  printf("%s at line: %d\n", s,yylineno);
+  //printf("%s at line: %d\n", s,yylineno);
 }
 
 void declarationHandler(char* variableName,bool isconst,dataType datatype,string value,bool isinitialized,bool isused,string operationtype,int linenumber){
@@ -302,14 +331,14 @@ void definedBefore(char* variableName){
 }
 int findVariable(char * variableName){
 
-  cout<<variableName<<endl;
+ 
     int currentScopeID = scopeID;
-    cout<<currentScopeID<<endl;
+    
      for(int i=currentScopeID;i>=0;--i){
-       cout<<"symbol table size "<<symbolTable[i].size()<<endl;
+       
        if(symbolTable[i].find(variableName)!=symbolTable[i].end()){
          //l2eto
-         cout<<"l2eto"<<endl;
+         
         return i;
        }
      }
@@ -320,7 +349,7 @@ int findVariable(char * variableName){
 
 
 void variableAssignment(char* variableName,char* assignedValue){
-     cout<<"assignment"<<endl;
+     
 
  int idx=findVariable(variableName);
    if(idx==-1){
@@ -337,7 +366,7 @@ void variableAssignment(char* variableName,char* assignedValue){
      else {
        e.isInitialized=1; 
         printTripleOperandOperation(_MOV,assignedValue,variableName);
-        cout<<variableName<<endl;
+      
         e.display(variableName);
      }
    }
@@ -363,12 +392,23 @@ void variableAssignment(char* variableName,char* assignedValue){
 
 
 
+void printJump(int labelNumber){
+  AssemblyFile<<"JMP ";
+  printLabel(labelNumber);
+}
 
+void printJumpFalse(int labelNumber){
+  AssemblyFile<<"JMF ";
+  printLabel(labelNumber);
+}
+void printJumpTrue(int labelNumber){
+  AssemblyFile<<"JMT ";
+  printLabel(labelNumber);
+}
 
-
-
-
-
+void printLabel(int labelNumber){
+  AssemblyFile<<"Label"<<labelNumber<<":\n";
+}
 
 void printConstError(char*variableName){
   string s="";
