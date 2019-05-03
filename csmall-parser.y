@@ -9,9 +9,27 @@
 #include <vector>
 using namespace std;
 
+enum dataType {
+  UNDEFINED,
+  INT_TYPE,
+  FLOAT_TYPE,
+  CHAR_TYPE
+};
+
+struct entry{
+	bool isConst;
+	dataType type;
+	string val;
+	bool isInitialized;
+	bool isUsed;
+	int line;
+	
+	entry(bool isConst = 0, dataType type = UNDEFINED, string val = "", bool isInitialized = 0, bool isUsed = 0, int line = 0) 
+		: isConst(isConst), type(type), val(val), isInitialized(isInitialized), isUsed(isUsed), line(line) {}
+};
 
 extern int yylineno;
-int curRegID = 0;
+int curRegID = 0,scopeID = 0;
 
 /* prototypes */
 int yylex(void);
@@ -62,7 +80,7 @@ program:
 	;
 function:
 		function stmt          											    {}
-	|	ENDOFFILE																	{}
+	|	ENDOFFILE																	      {}
 	|
 	;
 
@@ -75,19 +93,19 @@ stmt:
    	';'																	         	{}
 	|	declaration	';'															  {}
 	|	assignment ';'															  {}
-  | expr ';'
-  | loop
-  | condition
-  | open_brace collection_stmt closed_brace                      {/* check */}
+  | expr ';'                                      {}
+  | loop                                          {}
+  | condition                                     {}
+  | open_brace collection_stmt closed_brace       {/* check */}
   | open_brace closed_brace
   ;
 
 open_brace:
-            '{'
+            '{'                                   {}
              ;
 
 closed_brace:
-             '}'
+             '}'                                  {}
              ;
 
 declaration:
@@ -139,46 +157,46 @@ expr:
   ;
 
 loop:
-  FOR for_leftPart for_condition for_rightPart stmt
-  while stmt
-  | DO stmt while ';'
+  FOR for_leftPart for_condition for_rightPart stmt {}
+  while stmt                                        {}
+  | DO stmt while ';'                               {}
   ;
 
 for_leftPart:
-  '(' assignment
-  |'(' declaration
+  '(' assignment                                    {}
+  |'(' declaration                                  {}
   ;
 
 for_condition:
-  ';' expr
+  ';' expr                                          {}
   ;
 
 for_rightPart:
-  ';' assignment ')'
+  ';' assignment ')'                                {}
   ;
 
 while:
-  WHILE '(' expr ')'
+  WHILE '(' expr ')'                                {}
   ;
 
 condition:
-   if_statement stmt %prec IFX
-  |ifelse_statement 
+   if_statement stmt %prec IFX                      {}
+  |ifelse_statement                                 {}
   ;
 
 if_statement:
-  IF '(' expr ')' 
+  IF '(' expr ')'                                   {}
   ;
 
 ifelse_statement:
-  if_statement stmt ELSE stmt
+  if_statement stmt ELSE stmt                       {}
   ;
 
 
 %%
 
 void yyerror(char *s) {
-  printf("%s\n", s);
+  printf("%s at line: %d\n", s,yylineno);
 }
 
 
