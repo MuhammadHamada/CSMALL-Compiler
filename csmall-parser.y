@@ -119,6 +119,8 @@ void printJump(int labelNumber);
 %token GE LE GT LT EQ NE NOT AND OR 
 %token WHILE FOR DO IF ELSE
 %token BOOL_TRUE BOOL_FALSE
+%nonassoc IFX
+%nonassoc ELSE
 
 
 %left AND OR
@@ -128,8 +130,6 @@ void printJump(int labelNumber);
 %left '*' '/'
 
 %right NOT
-%nonassoc IFX
-%nonassoc ELSE
 
 %type <name> declaration
 %type <info> expr 
@@ -139,7 +139,7 @@ void printJump(int labelNumber);
 
 %%
 program: 
-	function                                                                        {exit(0);}
+	function                                          {exit(0);}
 	;
 function:
 		function stmt          											    {}
@@ -159,7 +159,7 @@ stmt:
   | expr ';'                                      {}
   | loop                                          {}
   | condition                                     {}
-  | open_brace collection_stmt closed_brace       {/* check */}
+  | open_brace collection_stmt closed_brace       {}
   | open_brace closed_brace
   ;
 
@@ -174,7 +174,7 @@ closed_brace:
 declaration:
    CONST INT VAR '=' expr                         {declarationHandler($3,1,INT_TYPE,$5.val,1,0,_MOV,yylineno);}
   |CONST FLOAT VAR '=' expr                       {declarationHandler($3,1,FLOAT_TYPE,$5.val,1,0,_MOV,yylineno);}
-  |CONST CHAR VAR '=' expr                   {declarationHandler($3,1,CHAR_TYPE,$5.val,1,0,_MOV,yylineno);}
+  |CONST CHAR VAR '=' expr                        {declarationHandler($3,1,CHAR_TYPE,$5.val,1,0,_MOV,yylineno);}
   |CONST BOOL VAR '=' expr                        {declarationHandler($3,1,BOOL_TYPE,$5.val,1,0,_MOV,yylineno);}
   
   
@@ -224,25 +224,20 @@ expr:
   ;
 
 loop:
-  forKeyword for_leftPart for_condition for_rightPart stmt {
-                                                     
-
-
-                                                     printJump(unconditionalLabels.top()); 
-                                                     unconditionalLabels.pop();                                                                                           
-                                                     printLabel(conditionalLabels.top());
-                                                     conditionalLabels.pop();
-                                                     symbolTable[scopeID--].clear();                                      
-                                                                                           
-                                                                                                }
-  |while stmt                                        {printJump(unconditionalLabels.top()); unconditionalLabels.pop(); printLabel(conditionalLabels.top()); conditionalLabels.pop(); symbolTable[scopeID--].clear();}
-  | doKeyword stmt WHILE expr ';'                               {printJumpTrue(conditionalLabels.top()); conditionalLabels.pop(); symbolTable[scopeID--].clear();}
+  forKeyword for_leftPart for_condition for_rightPart stmt  {
+                                                            printJump(unconditionalLabels.top()); 
+                                                            unconditionalLabels.pop();                                                                                           
+                                                            printLabel(conditionalLabels.top());
+                                                            conditionalLabels.pop();
+                                                            symbolTable[scopeID--].clear();                                      
+                                                            }
+  |while stmt                                               {printJump(unconditionalLabels.top()); unconditionalLabels.pop(); printLabel(conditionalLabels.top()); conditionalLabels.pop(); symbolTable[scopeID--].clear();}
+  | doKeyword stmt WHILE expr ';'                    {printJumpTrue(conditionalLabels.top()); conditionalLabels.pop(); symbolTable[scopeID--].clear();}
   ;
  
 
 forKeyword:
-FOR                                                 {  map<string,entry>temp; symbolTable.push_back(temp); ++scopeID;
-                                                     }
+FOR                                                 {  map<string,entry>temp; symbolTable.push_back(temp); ++scopeID;}
 ;
 for_leftPart:
   '(' assignment                                    {printLabel(++labelID); unconditionalLabels.push(labelID);}
@@ -261,26 +256,43 @@ whileKeyword:
 WHILE                                               { map<string,entry>temp; symbolTable.push_back(temp); ++scopeID; printLabel(++labelID); unconditionalLabels.push(labelID);}
 ;
 while:
-  whileKeyword '(' expr ')'                                {printJumpFalse(++labelID); conditionalLabels.push(labelID);}
+  whileKeyword '(' expr ')'                         {printJumpFalse(++labelID); conditionalLabels.push(labelID);}
   ;
 
 doKeyword:
-DO                                                {map<string,entry>temp; symbolTable.push_back(temp); ++scopeID; printLabel(++labelID); conditionalLabels.push(labelID);}
+DO                                                  {map<string,entry>temp; symbolTable.push_back(temp); ++scopeID; printLabel(++labelID); conditionalLabels.push(labelID);}
 ;
 
 condition:
-   if_statement stmt %prec IFX                      { printLabel(conditionalLabels.top()); conditionalLabels.pop(); symbolTable[scopeID--].clear();}
-  |ifelse_statement                                 { printLabel(conditionalLabels.top()); conditionalLabels.pop(); symbolTable[scopeID--].clear();}
+   if_statement stmt %prec IFX                      {cout << "condition : if_statement" << endl; printLabel(conditionalLabels.top()); conditionalLabels.pop(); symbolTable[scopeID--].clear();}
+  |ifelse_statement                                 {cout << "condition : ifelse_statement" << endl; printLabel(unconditionalLabels.top()); unconditionalLabels.pop(); symbolTable[scopeID--].clear();}
   ;
-
 if_statement:
-  ifKeyword '(' expr ')'                                   {printJumpFalse(++labelID); conditionalLabels.push(labelID);}
+  ifKeyword '(' expr ')'                            {cout << "if_statement" << endl; printJumpFalse(++labelID); conditionalLabels.push(labelID);}
   ;
 ifKeyword: 
-IF                                                   {map<string,entry>temp; symbolTable.push_back(temp); ++scopeID; }
+IF                                                  {cout << "ifkeyword" << endl;map<string,entry>temp; symbolTable.push_back(temp); ++scopeID; }
 ;                                        
 ifelse_statement:
-  if_statement stmt ELSE stmt                       {}
+  if_statement stmt  else_block                     {
+                                                    cout << "ifelse_statement" << endl;
+                                                    }
+  ;
+else_block:
+  elseKeyword stmt                                  {
+                                                    cout << "else_block" << endl;                                                    
+                                                    }
+  ;
+
+elseKeyword:
+  ELSE                                              {
+                                                    cout << "else_keyword" << endl;
+                                                    printJump(++labelID);
+                                                    unconditionalLabels.push(labelID);
+                                                    printLabel(conditionalLabels.top()); conditionalLabels.pop();
+                                                    map<string,entry>temp; symbolTable.push_back(temp); ++scopeID;
+
+                                                    }
   ;
 
 
@@ -471,6 +483,8 @@ string toString(T x){
 void symboTableFileInit(){
   symbolTableFile<<"Variable Name\t\tIsConst\t\tDatatype\t\tVariable Value\t\tIsInitialized\t\tIsUsed\t\tLine Number\n";
 }
+
+
 int main(void) {
   AssemblyFile.open("ASM.txt");
   codeProblemsFile.open("CodeProblems.txt");
