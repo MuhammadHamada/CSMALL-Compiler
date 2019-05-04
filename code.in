@@ -10,6 +10,9 @@ if (x < 3){
 	 
 	 
 	 
-} else{
+} else if(4 < 5){
     x = 2;
+} else {
+
+    int y = x + 1;
 }

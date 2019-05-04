@@ -122,7 +122,7 @@ struct entry{
       default:
       break;
     }
-     symbolTableFile<<variableName<<"\t\t"<<isConst<<"\t\t"<< dt<<"\t\t"<<stringValue<<"\t\t"<<isInitialized<<"\t\t"<<isUsed<<"\t\t"<<line<<"\n";
+     symbolTableFile<<variableName<<"\t\t\t"<<isConst<<"\t\t"<< dt<<"\t\t\t"<<stringValue<<"\t\t\t"<<isInitialized<<"\t\t\t"<<isUsed<<"\t\t"<<line<<"\n";
   }
 
 
@@ -580,7 +580,7 @@ static const yytype_uint16 yyrline[] =
      194,   199,   200,   201,   202,   208,   209,   210,   211,   212,
      213,   214,   215,   216,   217,   218,   219,   220,   221,   222,
      223,   227,   234,   235,   240,   243,   244,   248,   252,   256,
-     259,   263,   267,   268,   271,   274,   277,   283,   290
+     259,   263,   267,   268,   271,   274,   277,   282,   288
 };
 #endif
 
@@ -2044,24 +2044,22 @@ yyreduce:
 #line 277 "csmall-parser.y"
     {
                                                     cout << "ifelse_statement" << endl;
-                                                    
                                                     ;}
     break;
 
   case 67:
 
 /* Line 1455 of yacc.c  */
-#line 283 "csmall-parser.y"
+#line 282 "csmall-parser.y"
     {
-                                                    cout << "else_block" << endl;
-                                                    
+                                                    cout << "else_block" << endl;                                                    
                                                     ;}
     break;
 
   case 68:
 
 /* Line 1455 of yacc.c  */
-#line 290 "csmall-parser.y"
+#line 288 "csmall-parser.y"
     {
                                                     cout << "else_keyword" << endl;
                                                     printJump(++labelID);
@@ -2075,7 +2073,7 @@ yyreduce:
 
 
 /* Line 1455 of yacc.c  */
-#line 2079 "csmall-parser.tab.c"
+#line 2077 "csmall-parser.tab.c"
       default: break;
     }
   YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);
@@ -2287,7 +2285,7 @@ yyreturn:
 
 
 /* Line 1675 of yacc.c  */
-#line 301 "csmall-parser.y"
+#line 299 "csmall-parser.y"
 
 
 void yyerror(char *s) {
@@ -2397,17 +2395,14 @@ void variableAssignment(char* variableName,char* assignedValue){
 
 
 void printJump(int labelNumber){
-  AssemblyFile<<"JMP ";
-  printLabel(labelNumber);
+  AssemblyFile<<"JMP \tLabel"<<labelNumber<<"\n";
 }
 
 void printJumpFalse(int labelNumber){
-  AssemblyFile<<"JMF ";
-  printLabel(labelNumber);
+  AssemblyFile<<"JMF \tLabel"<<labelNumber<<"\n";
 }
 void printJumpTrue(int labelNumber){
-  AssemblyFile<<"JMT ";
-  printLabel(labelNumber);
+  AssemblyFile<<"JMT \tLabel"<<labelNumber<<"\n";
 }
 
 void printLabel(int labelNumber){
@@ -2456,12 +2451,12 @@ void printfRedeclarationError(char* variableName){
  void printTripleOperandOperation(string operationtype,string source,char* destination){
 
 
-AssemblyFile<<operationtype<<" "<<source<<" "<<destination<<"\n";
+AssemblyFile<<operationtype<<" \t"<<source<<" \t"<<destination<<"\n";
 return;
 }
 void printQuadOperandOperation(string operationtype,string source1,string source2,char* destination){
 
- AssemblyFile<<operationtype<<" "<<source1<<" "<<source2<<" "<<destination<<"\n";
+ AssemblyFile<<operationtype<<" \t"<<source1<<" \t"<<source2<<" \t"<<destination<<"\n";
  return;
 }
 template <typename T>

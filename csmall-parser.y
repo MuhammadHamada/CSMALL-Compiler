@@ -51,7 +51,7 @@ struct entry{
       default:
       break;
     }
-     symbolTableFile<<variableName<<"\t\t"<<isConst<<"\t\t"<< dt<<"\t\t"<<stringValue<<"\t\t"<<isInitialized<<"\t\t"<<isUsed<<"\t\t"<<line<<"\n";
+     symbolTableFile<<variableName<<"\t\t\t"<<isConst<<"\t\t"<< dt<<"\t\t\t"<<stringValue<<"\t\t\t"<<isInitialized<<"\t\t\t"<<isUsed<<"\t\t"<<line<<"\n";
   }
 
 
@@ -405,17 +405,14 @@ void variableAssignment(char* variableName,char* assignedValue){
 
 
 void printJump(int labelNumber){
-  AssemblyFile<<"JMP ";
-  printLabel(labelNumber);
+  AssemblyFile<<"JMP \tLabel"<<labelNumber<<"\n";
 }
 
 void printJumpFalse(int labelNumber){
-  AssemblyFile<<"JMF ";
-  printLabel(labelNumber);
+  AssemblyFile<<"JMF \tLabel"<<labelNumber<<"\n";
 }
 void printJumpTrue(int labelNumber){
-  AssemblyFile<<"JMT ";
-  printLabel(labelNumber);
+  AssemblyFile<<"JMT \tLabel"<<labelNumber<<"\n";
 }
 
 void printLabel(int labelNumber){
@@ -464,12 +461,12 @@ void printfRedeclarationError(char* variableName){
  void printTripleOperandOperation(string operationtype,string source,char* destination){
 
 
-AssemblyFile<<operationtype<<" "<<source<<" "<<destination<<"\n";
+AssemblyFile<<operationtype<<" \t"<<source<<" \t"<<destination<<"\n";
 return;
 }
 void printQuadOperandOperation(string operationtype,string source1,string source2,char* destination){
 
- AssemblyFile<<operationtype<<" "<<source1<<" "<<source2<<" "<<destination<<"\n";
+ AssemblyFile<<operationtype<<" \t"<<source1<<" \t"<<source2<<" \t"<<destination<<"\n";
  return;
 }
 template <typename T>
