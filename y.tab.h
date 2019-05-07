@@ -63,9 +63,14 @@
      DO = 279,
      IF = 280,
      ELSE = 281,
-     BOOL_TRUE = 282,
-     BOOL_FALSE = 283,
-     IFX = 284
+     SWITCH = 282,
+     CASE = 283,
+     DEFAULT = 284,
+     BREAK = 285,
+     BOOL_TRUE = 286,
+     BOOL_FALSE = 287,
+     UMINUS = 288,
+     IFX = 289
    };
 #endif
 
@@ -76,7 +81,7 @@ typedef union YYSTYPE
 {
 
 /* Line 1676 of yacc.c  */
-#line 101 "csmall-parser.y"
+#line 109 "csmall-parser.y"
 
   char* val; 
       		
@@ -92,7 +97,7 @@ typedef union YYSTYPE
 
 
 /* Line 1676 of yacc.c  */
-#line 96 "csmall-parser.tab.h"
+#line 101 "csmall-parser.tab.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */

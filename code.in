@@ -1,18 +1,4 @@
-int x = 0;
-if (x < 3){
-	 
-	 if(3 < 4) {
-		int y = 1;
-	 }else {
-	 
-		int z = 2;
-	 }
-	 
-	 
-	 
-} else if(4 < 5){
-    x = 2;
-} else {
+int x = 1 + 0.5;
 
-    int y = x + 1;
-}
+
+char a = 'a' + 10;

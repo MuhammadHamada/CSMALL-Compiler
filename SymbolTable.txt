@@ -1,8 +1,3 @@
 Variable Name		IsConst		Datatype		Variable Value		IsInitialized		IsUsed		Line Number
-x			0		Integer			R0			1			0		1
-x			0		Integer			R0			1			1		1
-y			0		Integer			R7			1			0		5
-z			0		Integer			R8			1			0		8
-x			0		Integer			R0			1			1		1
-x			0		Integer			R0			1			1		1
-y			0		Integer			R15			1			0		17
+x			0		Integer			R2			1			0		1
+a			0		Character			R5			1			0		4

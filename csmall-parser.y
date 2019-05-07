@@ -10,7 +10,8 @@
 using namespace std;
 ofstream codeProblemsFile,AssemblyFile,symbolTableFile;
 
-map<char*,bool>unusedVariables;
+set<string>unusedVariables;
+set<string>uniqueProblems;
 stack<int>unconditionalLabels,conditionalLabels;
 extern int yylineno;
 int curRegID = 0,scopeID = 0,labelID=0;
@@ -70,8 +71,12 @@ vector<map<string,entry>>symbolTable(1);
  const string _LTN = "LTN";
  const string _EQU = "EQU";
  const string _NEQ = "NEQ";
+ const string _NEG = "NEG";
  const string _NOT = "NOT";
  const string _MOV = "MOV";
+
+
+ map<string,dataType>variableType;
 
 
 
@@ -81,10 +86,13 @@ void yyerror(char *s);
 void declarationHandler(char* variableName,bool isconst,dataType datatype,string value,bool isinitialized,bool isused,string operationtype,int linenumber);
 void definedBefore(char* variableName);
 int findVariable(char * variableName);
+int getChosenType(int t1, int t2);
 void variableAssignment(char* variableName,char* assignedValue);
+void beforeExit();
 void printConstError(char*variableName);
 void printNotdefinedError(char*variableName);
 void printUninitializedWarning(char* variableName);
+void printIncompatibleTypeWarning();
 void printfRedeclarationError(char* variableName);
 void printTripleOperandOperation(string operationtype,string source,char* destination);
 void printQuadOperandOperation(string operationtype,string source1,string source2,char* destination);
@@ -117,8 +125,9 @@ void printJump(int labelNumber);
 %token CONST INT FLOAT CHAR BOOL 
 %token ENDOFFILE
 %token GE LE GT LT EQ NE NOT AND OR 
-%token WHILE FOR DO IF ELSE
+%token WHILE FOR DO IF ELSE SWITCH CASE DEFAULT BREAK
 %token BOOL_TRUE BOOL_FALSE
+%nonassoc UMINUS
 %nonassoc IFX
 %nonassoc ELSE
 
@@ -139,7 +148,7 @@ void printJump(int labelNumber);
 
 %%
 program: 
-	function                                          {exit(0);}
+	function                                          {beforeExit(); exit(0);}
 	;
 function:
 		function stmt          											    {}
@@ -161,6 +170,7 @@ stmt:
   | condition                                     {}
   | open_brace collection_stmt closed_brace       {}
   | open_brace closed_brace
+  | switch_statement                                 {cout << "stmt : switch_statement" << endl;}
   ;
 
 open_brace:
@@ -172,55 +182,57 @@ closed_brace:
              ;
 
 declaration:
-   CONST INT VAR '=' expr                         {declarationHandler($3,1,INT_TYPE,$5.val,1,0,_MOV,yylineno);}
-  |CONST FLOAT VAR '=' expr                       {declarationHandler($3,1,FLOAT_TYPE,$5.val,1,0,_MOV,yylineno);}
-  |CONST CHAR VAR '=' expr                        {declarationHandler($3,1,CHAR_TYPE,$5.val,1,0,_MOV,yylineno);}
-  |CONST BOOL VAR '=' expr                        {declarationHandler($3,1,BOOL_TYPE,$5.val,1,0,_MOV,yylineno);}
+   CONST INT VAR '=' expr                         {getChosenType(INT_TYPE,$5.type); variableType[$3] = INT_TYPE; declarationHandler($3,1,INT_TYPE,$5.val,1,0,_MOV,yylineno);}
+  |CONST FLOAT VAR '=' expr                       {getChosenType(FLOAT_TYPE,$5.type); variableType[$3] = FLOAT_TYPE; declarationHandler($3,1,FLOAT_TYPE,$5.val,1,0,_MOV,yylineno);}
+  |CONST CHAR VAR '=' expr                        {getChosenType(CHAR_TYPE,$5.type); variableType[$3] = CHAR_TYPE; declarationHandler($3,1,CHAR_TYPE,$5.val,1,0,_MOV,yylineno);}
+  |CONST BOOL VAR '=' expr                        {getChosenType(BOOL_TYPE,$5.type); variableType[$3] = BOOL_TYPE; declarationHandler($3,1,BOOL_TYPE,$5.val,1,0,_MOV,yylineno);}
   
   
-  |INT VAR '=' expr                               { declarationHandler($2,0,INT_TYPE,$4.val,1,0,_MOV,yylineno);}
-  |FLOAT VAR '=' expr                             {declarationHandler($2,0,FLOAT_TYPE,$4.val,1,0,_MOV,yylineno);}
-  |CHAR VAR '=' expr                              {declarationHandler($2,0,CHAR_TYPE,$4.val,1,0,_MOV,yylineno);}
-  |BOOL VAR '=' expr                              {declarationHandler($2,0,BOOL_TYPE,$4.val,1,0,_MOV,yylineno);}
+  |INT VAR '=' expr                               {getChosenType(INT_TYPE,$4.type); variableType[$2] = INT_TYPE; declarationHandler($2,0,INT_TYPE,$4.val,1,0,_MOV,yylineno);}
+  |FLOAT VAR '=' expr                             {getChosenType(FLOAT_TYPE,$4.type); variableType[$2] = FLOAT_TYPE; declarationHandler($2,0,FLOAT_TYPE,$4.val,1,0,_MOV,yylineno);}
+  |CHAR VAR '=' expr                              {getChosenType(CHAR_TYPE,$4.type); variableType[$2] = CHAR_TYPE; declarationHandler($2,0,CHAR_TYPE,$4.val,1,0,_MOV,yylineno);}
+  |BOOL VAR '=' expr                              {getChosenType(BOOL_TYPE,$4.type); variableType[$2] = BOOL_TYPE; declarationHandler($2,0,BOOL_TYPE,$4.val,1,0,_MOV,yylineno);}
   
   
-  |INT VAR                                        {declarationHandler($2,0,INT_TYPE,"0",0,0,_MOV,yylineno);}
-  |FLOAT VAR                                      {declarationHandler($2,0,FLOAT_TYPE,"0",0,0,_MOV,yylineno);}
-  |CHAR VAR                                       {declarationHandler($2,0,CHAR_TYPE,"0",0,0,_MOV,yylineno);}
-  |BOOL VAR                                       {declarationHandler($2,0,BOOL_TYPE,"0",0,0,_MOV,yylineno);}
+  |INT VAR                                        {variableType[$2] = INT_TYPE; declarationHandler($2,0,INT_TYPE,"0",0,0,_MOV,yylineno);}
+  |FLOAT VAR                                      {variableType[$2] = FLOAT_TYPE; declarationHandler($2,0,FLOAT_TYPE,"0",0,0,_MOV,yylineno);}
+  |CHAR VAR                                       {variableType[$2] = CHAR_TYPE; declarationHandler($2,0,CHAR_TYPE,"0",0,0,_MOV,yylineno);}
+  |BOOL VAR                                       {variableType[$2] = BOOL_TYPE; declarationHandler($2,0,BOOL_TYPE,"0",0,0,_MOV,yylineno);}
   ;
 
 assignment:
-		VAR '=' expr 														{variableAssignment($1,$3.val);}
+		VAR '=' expr 													       	{getChosenType(variableType[$1],$3.type); variableAssignment($1,$3.val);}
 	;
 
 
 expr:
-  INTEGER      {string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());  printTripleOperandOperation(_MOV,$1,$$.val);/* mov int register*/} 
-  | DECIMAL    {string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());printTripleOperandOperation(_MOV,$1,$$.val);/* mov dec register*/}
-  | CHARACTER  {string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());printTripleOperandOperation(_MOV,$1,$$.val);/*mov char register*/}
-  | VAR           { string registerNumber = "R" + toString<int>(curRegID++);
+  INTEGER      { $$.type = INT_TYPE; string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());  printTripleOperandOperation(_MOV,$1,$$.val);/* mov int register*/} 
+  | DECIMAL    { $$.type = FLOAT_TYPE; string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());printTripleOperandOperation(_MOV,$1,$$.val);/* mov dec register*/}
+  | CHARACTER  { $$.type = CHAR_TYPE; string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());printTripleOperandOperation(_MOV,$1,$$.val);/*mov char register*/}
+  | VAR           {$$.type = variableType[$1]; string registerNumber = "R" + toString<int>(curRegID++);
+                    cout << "reduce VAR -> expr" << endl;
                     strcpy($$.val,registerNumber.c_str()); 
                     /*check if defined before*/
                      definedBefore($1);
                      printTripleOperandOperation(_MOV,$1,$$.val);/*mov var register*/
                   } 
-  | BOOL_TRUE  {string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());printTripleOperandOperation(_MOV,"1",$$.val);/* mov 1 register*/}
-  | BOOL_FALSE {string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());printTripleOperandOperation(_MOV,"0",$$.val);/* mov 0 register*/}
-  | expr '+' expr          {string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());printQuadOperandOperation(_ADD,$1.val,$3.val,$$.val);/*add source1 source2 destination*/}
-  | expr '-' expr         {string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());printQuadOperandOperation(_SUB,$1.val,$3.val,$$.val);/*sub source1 source2 destination*/}
-  | expr '*' expr      {string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());printQuadOperandOperation(_MUL,$1.val,$3.val,$$.val);/*mul source1 source2 destination*/}
-  | expr '/' expr        {string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());printQuadOperandOperation(_DIV,$1.val,$3.val,$$.val);/*div source1 source2 destination*/}
-  | expr LT expr  {string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());printQuadOperandOperation(_LTN,$1.val,$3.val,$$.val);/*lt source1 source2 destination*/}
-  | expr GT expr  {string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());printQuadOperandOperation(_GTN,$1.val,$3.val,$$.val);/*gt source1 source2 destination*/}
-  | expr GE expr  {string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());printQuadOperandOperation(_GTE,$1.val,$3.val,$$.val);/*ge source1 source2 destination*/}
-  | expr LE expr  {string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());printQuadOperandOperation(_LTE,$1.val,$3.val,$$.val);/*le source1 source2 destination*/}
-  | expr NE expr  {string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());printQuadOperandOperation(_NEQ,$1.val,$3.val,$$.val);/*ne source1 source2 destination*/}
-  | expr EQ expr  {string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());printQuadOperandOperation(_EQU,$1.val,$3.val,$$.val);/*eq source1 source2 destination*/}
-  | NOT expr      {string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());printTripleOperandOperation(_NOT,$2.val,$$.val); /*not source destination*/}
-  | expr AND expr {string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());printQuadOperandOperation(_AND,$1.val,$3.val,$$.val);/*and source1 source2 destination*/}
-  | expr OR expr  {string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());printQuadOperandOperation(_OR,$1.val,$3.val,$$.val);/*or source1 source2 destination*/}
-  | '(' expr ')'  {string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());printTripleOperandOperation(_MOV,$2.val,$$.val);/* mov register register*/}
+  | BOOL_TRUE           {$$.type = BOOL_TYPE; string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());printTripleOperandOperation(_MOV,"1",$$.val);/* mov 1 register*/}
+  | BOOL_FALSE          {$$.type = BOOL_TYPE; string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());printTripleOperandOperation(_MOV,"0",$$.val);/* mov 0 register*/}
+  | '-' expr %prec UMINUS {$$.type = $2.type; string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());printTripleOperandOperation(_NEG,$2.val,$$.val);}
+  | expr '+' expr { $$.type = getChosenType($1.type,$3.type);  string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());printQuadOperandOperation(_ADD,$1.val,$3.val,$$.val);/*add source1 source2 destination*/}
+  | expr '-' expr { $$.type = getChosenType($1.type,$3.type); string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());printQuadOperandOperation(_SUB,$1.val,$3.val,$$.val);/*sub source1 source2 destination*/}
+  | expr '*' expr { $$.type = getChosenType($1.type,$3.type); string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());printQuadOperandOperation(_MUL,$1.val,$3.val,$$.val);/*mul source1 source2 destination*/}
+  | expr '/' expr { $$.type = getChosenType($1.type,$3.type); string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());printQuadOperandOperation(_DIV,$1.val,$3.val,$$.val);/*div source1 source2 destination*/}
+  | expr LT expr  { $$.type = getChosenType($1.type,$3.type); string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());printQuadOperandOperation(_LTN,$1.val,$3.val,$$.val);/*lt source1 source2 destination*/}
+  | expr GT expr  { $$.type = getChosenType($1.type,$3.type); string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());printQuadOperandOperation(_GTN,$1.val,$3.val,$$.val);/*gt source1 source2 destination*/}
+  | expr GE expr  { $$.type = getChosenType($1.type,$3.type); string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());printQuadOperandOperation(_GTE,$1.val,$3.val,$$.val);/*ge source1 source2 destination*/}
+  | expr LE expr  { $$.type = getChosenType($1.type,$3.type); string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());printQuadOperandOperation(_LTE,$1.val,$3.val,$$.val);/*le source1 source2 destination*/}
+  | expr NE expr  { $$.type = getChosenType($1.type,$3.type); string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());printQuadOperandOperation(_NEQ,$1.val,$3.val,$$.val);/*ne source1 source2 destination*/}
+  | expr EQ expr  { $$.type = getChosenType($1.type,$3.type); string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());printQuadOperandOperation(_EQU,$1.val,$3.val,$$.val);/*eq source1 source2 destination*/}
+  | NOT expr      { $$.type = $2.type; string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());printTripleOperandOperation(_NOT,$2.val,$$.val); /*not source destination*/}
+  | expr AND expr { $$.type = getChosenType($1.type,$3.type); string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());printQuadOperandOperation(_AND,$1.val,$3.val,$$.val);/*and source1 source2 destination*/}
+  | expr OR expr  { $$.type = getChosenType($1.type,$3.type); string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());printQuadOperandOperation(_OR,$1.val,$3.val,$$.val);/*or source1 source2 destination*/}
+  | '(' expr ')'  { $$.type = $2.type; string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());printTripleOperandOperation(_MOV,$2.val,$$.val);/* mov register register*/}
   ;
 
 loop:
@@ -253,7 +265,7 @@ for_rightPart:
   ;
 
 whileKeyword:
-WHILE                                               { map<string,entry>temp; symbolTable.push_back(temp); ++scopeID; printLabel(++labelID); unconditionalLabels.push(labelID);}
+WHILE                                               {map<string,entry>temp; symbolTable.push_back(temp); ++scopeID; printLabel(++labelID); unconditionalLabels.push(labelID);}
 ;
 while:
   whileKeyword '(' expr ')'                         {printJumpFalse(++labelID); conditionalLabels.push(labelID);}
@@ -295,24 +307,54 @@ elseKeyword:
                                                     }
   ;
 
+switch_statement:
+  switchKeyword '(' expr ')' open_brace  case_list  default_stmt closed_brace    {cout << "switch_statement" << endl;}
+  | switchKeyword '(' expr ')' open_brace  case_list closed_brace               {cout << "switch_statement" << endl;}
+  ;
+
+switchKeyword:
+  SWITCH                                                         {cout << "switchKeyword" << endl;}
+  ;
+
+case_list:
+    case_list case_stmt                                          {cout << "case_list" << endl;}
+  | case_stmt                                                    {cout << "case_list" << endl;}
+  ;
+
+case_stmt:
+    caseKeyword INTEGER ':' collection_stmt BREAK ';'               {cout << "case_stmt" << endl;}
+    caseKeyword INTEGER ':'  BREAK ';'                              {cout << "case_stmt" << endl;}
+    ;
+
+caseKeyword:
+    CASE                                                            {cout << "caseKeyword" << endl;}
+    ;
+
+default_stmt: 
+  DEFAULT ':' collection_stmt BREAK ';'                                {cout << "default_stmt" << endl;}
+  |DEFAULT ':' BREAK ';'                                               {cout << "default_stmt" << endl;}
+  ;
+
+
+
 
 %%
 
 void yyerror(char *s) {
-  //printf("%s at line: %d\n", s,yylineno);
+  printf("%s at line: %d\n", s,yylineno);
 }
 
 void declarationHandler(char* variableName,bool isconst,dataType datatype,string value,bool isinitialized,bool isused,string operationtype,int linenumber){
       
         //check if re-declaration
-        if(symbolTable[scopeID].count(variableName)>0){
+        if(findVariable(variableName) != -1) {
              printfRedeclarationError(variableName);
             unsuccessfulCompilation=1;          
         }
         else{
           printTripleOperandOperation(operationtype,value,variableName);
            symbolTable[scopeID][variableName]= entry(isconst,datatype,value,isinitialized,isused,linenumber);
-           unusedVariables[variableName]=1; 
+           unusedVariables.insert(variableName); 
            entry& e =symbolTable[scopeID][variableName];
            e.display(variableName);  
         }
@@ -320,12 +362,14 @@ void declarationHandler(char* variableName,bool isconst,dataType datatype,string
 }
 
 void definedBefore(char* variableName){
+      cout << "definedBefore is called " << yylineno << endl;
       //check if defined before or not
      int idx=findVariable(variableName);
      
      if(idx==-1){
            printNotdefinedError(variableName);
            unsuccessfulCompilation=1;
+           cout << "Not found" << endl;
      }
      else {
            entry& e = symbolTable[idx][variableName];
@@ -333,8 +377,17 @@ void definedBefore(char* variableName){
               printUninitializedWarning(variableName);
             }
             e.isUsed=1;
+            cout << "Varable Name = " << variableName << endl;
+            for(auto i : unusedVariables) {
+              cout << i << endl;
+            }
+        
             unusedVariables.erase(variableName);
             e.display(variableName);
+            cout << "-------------------------------" << endl;
+            for(auto i : unusedVariables) {
+              cout << i << endl;
+            }
      }
 
     return;
@@ -357,6 +410,22 @@ int findVariable(char * variableName){
      return -1;
 }
 
+int getChosenType(int t1, int t2) {
+
+    if(t1 != t2){
+        printIncompatibleTypeWarning();
+    }
+    if(t1 == FLOAT_TYPE || t2 == FLOAT_TYPE) {
+      return FLOAT_TYPE;
+    }else if(t1 == INT_TYPE || t2 == INT_TYPE) {
+      return INT_TYPE;
+    }else if(t1 == CHAR_TYPE || t2 == CHAR_TYPE){
+      return CHAR_TYPE;
+    }else {
+      return t1;
+    }
+
+}
 
 
 
@@ -419,17 +488,39 @@ void printLabel(int labelNumber){
   AssemblyFile<<"Label"<<labelNumber<<":\n";
 }
 
+void beforeExit() {
+
+    for (auto i : unusedVariables) {
+
+        codeProblemsFile << "Warning: Variable " << i << " is not used.\n";
+  
+
+    }
+
+    for (auto i : uniqueProblems) {
+        codeProblemsFile << i;
+    }
+
+    if(!unsuccessfulCompilation){
+      codeProblemsFile << "Compiled Successfully." << endl;
+    }else {
+      codeProblemsFile << "Compilation Error." << endl;
+    }
+
+}
+
 void printConstError(char*variableName){
-  string s="";
+   string s="";
    s+=variableName;
-   s+=" is constant and cannot be changed\nat line";
+   s+=" is constant and cannot be changed at line ";
    s+=toString<int>(yylineno);
+   codeProblemsFile << s << endl;
   return;
 }
 void printNotdefinedError(char*variableName){
          string s="";
           s+= variableName; 
-          s+= "  is not defined\n";
+          s+= "  is not defined ";
           s+="at line ";
           s+=toString<int>(yylineno)+"\n";
           codeProblemsFile<<s;
@@ -437,13 +528,24 @@ void printNotdefinedError(char*variableName){
           
 }
 void printUninitializedWarning(char* variableName){
-        codeProblemsFile<<"WARNING: variable ";
-        codeProblemsFile<<variableName;
-        codeProblemsFile<<" is not initialized\n";
-        codeProblemsFile<<"at line ";
-        codeProblemsFile<<toString<int>(yylineno);
-        codeProblemsFile<<"\n";
+        string s = "WARNING: variable ";
+        s += variableName;
+        s += " is not initialized ";
+        s += "at line ";
+        s += toString<int>(yylineno);
+        s += "\n";
+        codeProblemsFile << s;
         return;
+}
+
+void printIncompatibleTypeWarning() {
+
+  string s = "Warning: Incompatible types at line: ";
+  s += toString<int>(yylineno);
+  s += "\n";
+  uniqueProblems.insert(s);
+  return;
+
 }
 
 void printfRedeclarationError(char* variableName){
@@ -480,7 +582,6 @@ string toString(T x){
 void symboTableFileInit(){
   symbolTableFile<<"Variable Name\t\tIsConst\t\tDatatype\t\tVariable Value\t\tIsInitialized\t\tIsUsed\t\tLine Number\n";
 }
-
 
 int main(void) {
   AssemblyFile.open("ASM.txt");

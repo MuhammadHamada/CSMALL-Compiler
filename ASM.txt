@@ -1,33 +1,8 @@
-MOV 	0 	R0
-MOV 	R0 	x
-MOV 	x 	R1
-MOV 	3 	R2
-LTN 	R1 	R2 	R3
-JMF 	Label1
-MOV 	3 	R4
-MOV 	4 	R5
-LTN 	R4 	R5 	R6
-JMF 	Label2
-MOV 	1 	R7
-MOV 	R7 	y
-JMP 	Label3
-Label2:
-MOV 	2 	R8
-MOV 	R8 	z
-Label3:
-JMP 	Label4
-Label1:
-MOV 	4 	R9
-MOV 	5 	R10
-LTN 	R9 	R10 	R11
-JMF 	Label5
-MOV 	2 	R12
-MOV 	R12 	x
-JMP 	Label6
-Label5:
-MOV 	x 	R13
-MOV 	1 	R14
-ADD 	R13 	R14 	R15
-MOV 	R15 	y
-Label6:
-Label4:
+MOV 	1 	R0
+MOV 	0.5 	R1
+ADD 	R0 	R1 	R2
+MOV 	R2 	x
+MOV 	'a' 	R3
+MOV 	10 	R4
+ADD 	R3 	R4 	R5
+MOV 	R5 	a

@@ -13,7 +13,7 @@ printable [\x20-\x7E]
 %%
 
 
-[ \t]+                          ;/* ignore tabs */
+[ \n\t\r]+                      ;/* ignore whitespaces */                         ;
 "/*"{printable}*"*/"            ;/* Ignore Comments */
 
 "const"							{return CONST;}
@@ -31,12 +31,17 @@ printable [\x20-\x7E]
 "for"                           {return FOR;}
 "while"                         {return WHILE;}
 "do"                            {return DO;}
+"switch"                        {return SWITCH;};
+"case"                          {return CASE;}
+"default"                       {return DEFAULT;}
+"break"                         {return BREAK;}
 
 "{"								{return '{';}
 "}"								{return '}';}
 "("								{return '(';}
 ")"								{return ')';}
 ";"								{return ';';}
+":"                             {return ':';}
 
 "="								{return '=';}
 "+"								{return '+';}
