@@ -356,7 +356,8 @@ void declarationHandler(char* variableName,bool isconst,dataType datatype,string
         //check if re-declaration
         if(findVariable(variableName) != -1) {
              printfRedeclarationError(variableName);
-            unsuccessfulCompilation=1;          
+            unsuccessfulCompilation=1;  
+            cout<<"scopeID: "<<scopeID<<endl;        
         }
         else{
           printTripleOperandOperation(operationtype,value,variableName);
@@ -384,6 +385,7 @@ void definedBefore(char* variableName){
             }
             if(e.isUsed != 1){
               e.isUsed=1;
+              e.line = yylineno;
               e.display(variableName);
             }
             unusedVariables.erase(variableName);
@@ -448,6 +450,7 @@ void variableAssignment(char* variableName,char* assignedValue){
        if(e.isInitialized != 1) {
           
           e.isInitialized=1; 
+          e.line = yylineno;
           e.display(variableName);
        }
        printTripleOperandOperation(_MOV,assignedValue,variableName);

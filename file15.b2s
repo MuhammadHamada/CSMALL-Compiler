@@ -1,0 +1,65 @@
+
+int j = 0;
+int k=1;
+int kk=0;
+
+
+
+int m=0;
+
+for(;j<m;j=j+1)
+{
+	int k = 10;
+	if(k==1)
+	{
+		k = -1;
+	}
+	else
+	{
+		k = 0;
+	}
+}
+
+
+int a=-1;
+int b=10;
+while (a<b)
+{
+	int c;
+	a = a + 1;
+	for(b=10;b<15;b=b+1)
+	{
+		int d;
+	  a = a + 2;
+	}
+}
+
+
+
+for(;a!=9;a=a+1)
+{
+	int m=9;;
+	while(False)
+	{
+		m=m+1;
+	 k = k +1;
+	}
+
+}
+int t = 9;
+
+repeat
+{
+   int z = 1;
+}
+until (t>2);
+
+int o=1;
+char g ="0";
+switch(g){
+	
+  case "1" : { int x = 100;
+  x = x + 20;}
+  case "3" : {o = o + 70;}
+  default : {int x = 100;} 
+};

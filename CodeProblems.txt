@@ -1,2 +1,3 @@
-Warning: Variable z is not used.
-Compiled Successfully.
+multible definintions of variable: k at line: 4
+Warning: Variable k is not used.
+Compilation Error.

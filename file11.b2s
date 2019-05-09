@@ -1,0 +1,72 @@
+
+
+int k=1;
+int kk=0;
+
+
+
+int m;
+
+for(int j = 0; j < m; j = j + 1)
+{
+	int o = 10;
+	if(k==1)
+	{
+		k = -1;
+	}
+	else
+	{
+		k = 0;
+	}
+}
+
+
+int a='o';
+int b=10;
+while (a<b)
+{
+	int c;
+	a = a + 1;
+	for(b=10;b<15;b = b + 1)
+	{
+		int d;
+	  a = a + 2;
+	}
+}
+
+
+
+for(a = a; a != 9 ; a = a + 1)
+{
+	int m=9;;
+	while(False)
+	{
+		m = m + 1;
+	 k = k + 1;
+	}
+
+}
+
+do
+{
+   int z = 1;
+}
+while (x>2);
+
+int x;
+char y ='0';
+switch(y){
+	
+  case 1 :  
+  int x = 100;
+  x = x + 20;
+  break;
+  
+  case 3 : 
+  x = x + 70;
+  break;
+  
+  default : 
+  x = 100;
+  break;
+};

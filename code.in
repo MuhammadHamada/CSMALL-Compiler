@@ -1,24 +1,5 @@
-int y = 0;
-int x = 0;
+int k = 3; 
 
-switch (x + y) {
-
-	case 0:
-	y = 1;
-	switch(y){
-		case 0:
-		int z = 1;
-		break;
-	
-	}
-	break;
-	
-	case 1:
-    y = 2;	
-	break;
-	
-	default: 
-	y = 3;
-	break;
-
+if( true ) {
+	int k = 5;
 }
