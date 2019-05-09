@@ -1,4 +1,24 @@
-int x = 1 + 0.5;
+int y = 0;
+int x = 0;
 
+switch (x + y) {
 
-char a = 'a' + 10;
+	case 0:
+	y = 1;
+	switch(y){
+		case 0:
+		int z = 1;
+		break;
+	
+	}
+	break;
+	
+	case 1:
+    y = 2;	
+	break;
+	
+	default: 
+	y = 3;
+	break;
+
+}

@@ -1,5 +1,2 @@
-Warning: Variable a is not used.
-Warning: Variable x is not used.
-Warning: Incompatible types at line: 1
-Warning: Incompatible types at line: 4
+Warning: Variable z is not used.
 Compiled Successfully.

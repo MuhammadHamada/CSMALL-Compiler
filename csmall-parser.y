@@ -12,6 +12,8 @@ ofstream codeProblemsFile,AssemblyFile,symbolTableFile;
 
 set<string>unusedVariables;
 set<string>uniqueProblems;
+stack<int>lastRegisterHaslastSwitchExpr;
+stack<int>unconditionalLabelsSwitch;
 stack<int>unconditionalLabels,conditionalLabels;
 extern int yylineno;
 int curRegID = 0,scopeID = 0,labelID=0;
@@ -152,8 +154,8 @@ program:
 	;
 function:
 		function stmt          											    {}
-	|	ENDOFFILE																	      {}
-	|
+	| stmt
+  |	ENDOFFILE																	      {}
 	;
 
 collection_stmt:
@@ -170,7 +172,6 @@ stmt:
   | condition                                     {}
   | open_brace collection_stmt closed_brace       {}
   | open_brace closed_brace
-  | switch_statement                                 {cout << "stmt : switch_statement" << endl;}
   ;
 
 open_brace:
@@ -210,7 +211,6 @@ expr:
   | DECIMAL    { $$.type = FLOAT_TYPE; string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());printTripleOperandOperation(_MOV,$1,$$.val);/* mov dec register*/}
   | CHARACTER  { $$.type = CHAR_TYPE; string registerNumber = "R" + toString<int>(curRegID++);strcpy($$.val,registerNumber.c_str());printTripleOperandOperation(_MOV,$1,$$.val);/*mov char register*/}
   | VAR           {$$.type = variableType[$1]; string registerNumber = "R" + toString<int>(curRegID++);
-                    cout << "reduce VAR -> expr" << endl;
                     strcpy($$.val,registerNumber.c_str()); 
                     /*check if defined before*/
                      definedBefore($1);
@@ -276,29 +276,25 @@ DO                                                  {map<string,entry>temp; symb
 ;
 
 condition:
-   if_statement stmt %prec IFX                      {cout << "condition : if_statement" << endl; printLabel(conditionalLabels.top()); conditionalLabels.pop(); symbolTable[scopeID--].clear();}
-  |ifelse_statement                                 {cout << "condition : ifelse_statement" << endl; printLabel(unconditionalLabels.top()); unconditionalLabels.pop(); symbolTable[scopeID--].clear();}
+   if_statement stmt %prec IFX                      {printLabel(conditionalLabels.top()); conditionalLabels.pop(); symbolTable[scopeID--].clear();}
+  |ifelse_statement                                 {printLabel(unconditionalLabels.top()); unconditionalLabels.pop(); symbolTable[scopeID--].clear();}
+  | switch_statement                                 {}
   ;
 if_statement:
-  ifKeyword '(' expr ')'                            {cout << "if_statement" << endl; printJumpFalse(++labelID); conditionalLabels.push(labelID);}
+  ifKeyword '(' expr ')'                            {printJumpFalse(++labelID); conditionalLabels.push(labelID);}
   ;
 ifKeyword: 
-IF                                                  {cout << "ifkeyword" << endl;map<string,entry>temp; symbolTable.push_back(temp); ++scopeID; }
+IF                                                  {map<string,entry>temp; symbolTable.push_back(temp); ++scopeID; }
 ;                                        
 ifelse_statement:
-  if_statement stmt  else_block                     {
-                                                    cout << "ifelse_statement" << endl;
-                                                    }
+  if_statement stmt  else_block                     {}
   ;
 else_block:
-  elseKeyword stmt                                  {
-                                                    cout << "else_block" << endl;                                                    
-                                                    }
+  elseKeyword stmt                                  {}
   ;
 
 elseKeyword:
   ELSE                                              {
-                                                    cout << "else_keyword" << endl;
                                                     printJump(++labelID);
                                                     unconditionalLabels.push(labelID);
                                                     printLabel(conditionalLabels.top()); conditionalLabels.pop();
@@ -308,31 +304,41 @@ elseKeyword:
   ;
 
 switch_statement:
-  switchKeyword '(' expr ')' open_brace  case_list  default_stmt closed_brace    {cout << "switch_statement" << endl;}
-  | switchKeyword '(' expr ')' open_brace  case_list closed_brace               {cout << "switch_statement" << endl;}
+   switch_expr open_brace  case_list  default_stmt closed_brace  {lastRegisterHaslastSwitchExpr.pop(); printLabel(unconditionalLabelsSwitch.top()); unconditionalLabelsSwitch.pop(); symbolTable[scopeID--].clear(); }
+  | switch_expr open_brace  case_list closed_brace               {lastRegisterHaslastSwitchExpr.pop(); printLabel(unconditionalLabelsSwitch.top()); unconditionalLabelsSwitch.pop(); symbolTable[scopeID--].clear(); }
   ;
 
+switch_expr:
+  switchKeyword '(' expr ')'                                     {lastRegisterHaslastSwitchExpr.push(curRegID - 1);}
+ ;
+
 switchKeyword:
-  SWITCH                                                         {cout << "switchKeyword" << endl;}
+  SWITCH                                                         {map<string,entry>temp; symbolTable.push_back(temp); ++scopeID; unconditionalLabelsSwitch.push(++labelID);}
   ;
 
 case_list:
-    case_list case_stmt                                          {cout << "case_list" << endl;}
-  | case_stmt                                                    {cout << "case_list" << endl;}
+    case_list case_stmt                                          {}
+  | case_stmt                                                    {}
   ;
 
 case_stmt:
-    caseKeyword INTEGER ':' collection_stmt BREAK ';'               {cout << "case_stmt" << endl;}
-    caseKeyword INTEGER ':'  BREAK ';'                              {cout << "case_stmt" << endl;}
+    case_condition collection_stmt BREAK ';'            {printJump(unconditionalLabelsSwitch.top()); printLabel(conditionalLabels.top()); conditionalLabels.pop(); }
+    | case_condition  BREAK ';'                         {printJump(unconditionalLabelsSwitch.top()); printLabel(conditionalLabels.top()); conditionalLabels.pop(); }
     ;
 
-caseKeyword:
-    CASE                                                            {cout << "caseKeyword" << endl;}
+case_condition:
+    CASE INTEGER ':'                                    {
+                                                            AssemblyFile << _MOV << " 	" << $2 << " 	R" << curRegID << endl;                                                          
+                                                            AssemblyFile << _EQU << "     R" << lastRegisterHaslastSwitchExpr.top() << " 	R" << curRegID << " 	R" << ++curRegID << endl;   
+                                                            printJumpFalse(++labelID);
+                                                            conditionalLabels.push(labelID);
+
+                                                        }
     ;
 
 default_stmt: 
-  DEFAULT ':' collection_stmt BREAK ';'                                {cout << "default_stmt" << endl;}
-  |DEFAULT ':' BREAK ';'                                               {cout << "default_stmt" << endl;}
+  DEFAULT ':' collection_stmt BREAK ';'                                {printJump(unconditionalLabelsSwitch.top()); }
+  |DEFAULT ':' BREAK ';'                                               {printJump(unconditionalLabelsSwitch.top()); }
   ;
 
 
@@ -342,6 +348,7 @@ default_stmt:
 
 void yyerror(char *s) {
   printf("%s at line: %d\n", s,yylineno);
+  codeProblemsFile << s << " at line " << yylineno << endl;
 }
 
 void declarationHandler(char* variableName,bool isconst,dataType datatype,string value,bool isinitialized,bool isused,string operationtype,int linenumber){
@@ -362,32 +369,25 @@ void declarationHandler(char* variableName,bool isconst,dataType datatype,string
 }
 
 void definedBefore(char* variableName){
-      cout << "definedBefore is called " << yylineno << endl;
+
       //check if defined before or not
      int idx=findVariable(variableName);
      
      if(idx==-1){
            printNotdefinedError(variableName);
            unsuccessfulCompilation=1;
-           cout << "Not found" << endl;
      }
      else {
            entry& e = symbolTable[idx][variableName];
             if(e.isInitialized==0){
               printUninitializedWarning(variableName);
             }
-            e.isUsed=1;
-            cout << "Varable Name = " << variableName << endl;
-            for(auto i : unusedVariables) {
-              cout << i << endl;
+            if(e.isUsed != 1){
+              e.isUsed=1;
+              e.display(variableName);
             }
-        
             unusedVariables.erase(variableName);
-            e.display(variableName);
-            cout << "-------------------------------" << endl;
-            for(auto i : unusedVariables) {
-              cout << i << endl;
-            }
+
      }
 
     return;
@@ -445,10 +445,13 @@ void variableAssignment(char* variableName,char* assignedValue){
         unsuccessfulCompilation=1;
      }
      else {
-       e.isInitialized=1; 
-        printTripleOperandOperation(_MOV,assignedValue,variableName);
-      
-        e.display(variableName);
+       if(e.isInitialized != 1) {
+          
+          e.isInitialized=1; 
+          e.display(variableName);
+       }
+       printTripleOperandOperation(_MOV,assignedValue,variableName);
+
      }
    }
   return;
